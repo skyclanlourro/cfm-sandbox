@@ -667,8 +667,7 @@ function tr_renderUI() {
   if (prev) {
       if (output) {
         var highlighted = tr_state.mappings.map(function(m) { return m.tgt; }).filter(Boolean);
-        var lines = JSON.stringify(output, null, 2).split("
-");
+        var lines = JSON.stringify(output, null, 2).split("\n");
         prev.innerHTML = lines.map(function(line) {
           var hi = highlighted.some(function(h) { return line.indexOf('"' + h + '"') !== -1; });
           return `<div style="white-space:pre;${hi ? 'color:var(--amber-500);font-weight:600' : 'color:var(--text-primary)'}">${tr_esc(line)}</div>`;
