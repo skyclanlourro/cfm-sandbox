@@ -269,13 +269,9 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit;letter
 
 
 /* ─── Transformer ─── */
-.transformer-wrapper { background: #030810; color: #94a3b8; font-family: system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; border: 1px solid var(--border-primary); margin-top: 10px; height: calc(100vh - 200px); min-height: 600px; }
-.transformer-wrapper input, .transformer-wrapper textarea, .transformer-wrapper select { font-family: monospace; outline: none; }
-.transformer-wrapper input::placeholder, .transformer-wrapper textarea::placeholder { color: #1e3a5f; }
-.transformer-wrapper select option { background: #0d1929; }
-.transformer-wrapper button { cursor: pointer; }
-.transformer-wrapper .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-.transformer-wrapper .tab-content.active { display: flex; }
+.dropzone{border:2px dashed var(--border-primary);border-radius:var(--radius-xl);padding:var(--space-8);text-align:center;cursor:pointer;transition:all var(--duration-fast) var(--ease-out);background:var(--bg-surface-solid)}
+.dropzone:hover,.dropzone.dragover{border-color:var(--blue-500);background:rgba(0,113,227,0.02)}
+
 
 /* ─── Responsive ─── */
 @media(max-width:833px){

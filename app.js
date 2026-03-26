@@ -558,12 +558,11 @@ function tr_getAvailableKeys(items) {
   return Object.keys(keys).sort();
 }
 function tr_esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function tr_badge(text, color, bg) { return '<span style="background:' + bg + ';color:' + color + ';border:1px solid ' + color + '44;border-radius:4px;padding:2px 8px;font-size:10px;font-family:monospace">' + tr_esc(text) + '</span>'; }
 
-window.copyKey = function(k) { if (navigator.clipboard) navigator.clipboard.writeText(k); };
+window.copyKey = function(k) { if (navigator.clipboard) navigator.clipboard.writeText(k).then(()=>showToast('Copié','info')); };
 
 function tr_renderUI() {
-  var rootPath = document.getElementById("rootPath").value;
+  var rootPath = document.getElementById("rootPath")?.value || "";
   var items = tr_state.sourceJson ? tr_resolveItems(tr_state.sourceJson, rootPath) : null;
   var outputArr = items ? tr_buildOutput(items, tr_state.mappings) : null;
   var output = outputArr ? { data: outputArr } : null;
@@ -579,22 +578,19 @@ function tr_renderUI() {
   if(statsEl) {
     statsEl.innerHTML = "";
     if (items) {
-        statsEl.innerHTML += tr_badge(totalPax + " pax", "#38bdf8", "#1e3a5f33");
-        if (totalVols > 0) statsEl.innerHTML += tr_badge(totalVols + " vols", "#34d399", "#34d39922");
-        if (ignored > 0)   statsEl.innerHTML += tr_badge(ignored + " ignorés", "#f59e0b", "#f59e0b22");
+        statsEl.innerHTML += `<span class="badge badge-blue">${totalPax} pax</span>`;
+        if (totalVols > 0) statsEl.innerHTML += `<span class="badge badge-green">${totalVols} vols</span>`;
+        if (ignored > 0)   statsEl.innerHTML += `<span class="badge badge-amber">${ignored} ignorés</span>`;
     }
   }
 
-  function setBtn(id, enabled, gradient) {
+  function setBtn(id, enabled) {
     var b = document.getElementById(id);
-    if(!b) return;
-    b.disabled = !enabled;
-    b.style.background = enabled ? gradient : "#1e2d47";
-    b.style.color = enabled ? "#fff" : "#334155";
+    if(b) b.disabled = !enabled;
   }
-  setBtn("btnNext",     !!tr_state.sourceJson && !!items, "linear-gradient(135deg,#1d4ed8,#0ea5e9)");
-  setBtn("btnOutput",   !!output, "linear-gradient(135deg,#1d4ed8,#0ea5e9)");
-  setBtn("btnDownload", !!output, "linear-gradient(135deg,#059669,#34d399)");
+  setBtn("btnNext",     !!tr_state.sourceJson && !!items);
+  setBtn("btnOutput",   !!output);
+  setBtn("btnDownload", !!output);
 
   var gs = document.getElementById("groupStats");
   if (items && gs) {
@@ -604,15 +600,15 @@ function tr_renderUI() {
       var uniq = {};
       vals.filter(function(v) { return v !== undefined; }).forEach(function(v) { uniq[String(v)] = 1; });
       var uniqueCount = Object.keys(uniq).length;
-      var col = defined > 0 ? "#34d399" : "#ef4444";
-      return '<div style="display:flex;gap:6px;align-items:center">' +
-        '<span style="font-family:monospace;font-size:10px;color:#38bdf8;flex:1">' + tr_esc(p) + '</span>' +
-        '<span style="font-family:monospace;font-size:10px;color:' + col + '">' + defined + '/' + items.length + ' pax</span>' +
-        '<span style="font-family:monospace;font-size:10px;color:#f59e0b">' + uniqueCount + ' val. uniques</span>' +
-        '</div>';
+      var col = defined > 0 ? "var(--green-500)" : "var(--red-500)";
+      return `<div style="display:flex;gap:var(--space-3);align-items:center;font-size:13px;border-bottom:1px solid var(--border-primary);padding-bottom:var(--space-2);margin-bottom:var(--space-2)">
+        <span style="font-family:var(--mono);color:var(--blue-500);flex:1">${tr_esc(p)}</span>
+        <span style="font-family:var(--mono);color:${col}">${defined}/${items.length} pax</span>
+        <span style="font-family:var(--mono);color:var(--amber-500)">${uniqueCount} val. uniques</span>
+        </div>`;
     }).join("");
   } else if(gs) {
-    gs.innerHTML = '<span style="color:#334155;font-size:10px">Charger un fichier source pour voir les stats</span>';
+    gs.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Charger un fichier source pour voir les stats</span>';
   }
 
   var availKeys = items ? tr_getAvailableKeys(items) : [];
@@ -622,43 +618,40 @@ function tr_renderUI() {
   var kBadges = document.getElementById("keysBadges");
   if(kBadges) {
       kBadges.innerHTML = availKeys.map(function(k) {
-        return '<span onclick="copyKey(\'' + tr_esc(k) + '\')" title="Cliquer pour copier" style="background:#1e3a5f22;border:1px solid #1e3a5f;border-radius:3px;padding:1px 6px;font-size:10px;font-family:monospace;color:#38bdf8;cursor:pointer;user-select:none">' + tr_esc(k) + '</span>';
+        return `<span onclick="copyKey('${tr_esc(k)}')" class="badge badge-blue" style="cursor:pointer;font-family:var(--mono)" title="Cliquer pour copier">${tr_esc(k)}</span>`;
       }).join("");
   }
 
   var mc = document.getElementById("mappingCount");
-  if(mc) mc.textContent = tr_state.mappings.length + " mappings";
+  if(mc) mc.textContent = tr_state.mappings.length + " mapping" + (tr_state.mappings.length > 1 ? "s" : "");
   
   var list = document.getElementById("mappingList");
   if (list) {
       if (tr_state.mappings.length === 0) {
-        list.innerHTML = '<div style="color:#334155;font-size:12px;text-align:center;padding:28px 0">Aucun mapping</div>';
+        list.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:var(--space-6)">Aucun mapping</td></tr>';
       } else {
         list.innerHTML = tr_state.mappings.map(function(m) {
           var val = items ? tr_getVal(items[0], m.src) : undefined;
           var found = val !== undefined;
           var countWith = items ? items.filter(function(i) { return tr_getVal(i, m.src) !== undefined; }).length : 0;
-          var bc = m.src && items ? (found ? "#34d39966" : "#ef444455") : "#1e2d47";
           var opts = '<option value="">-- cible --</option>' + tr_TARGET_FIELDS.map(function(f) {
-            return '<option value="' + tr_esc(f) + '"' + (f === m.tgt ? " selected" : "") + '>' + tr_esc(f) + '</option>';
+            return `<option value="${tr_esc(f)}" ${f === m.tgt ? "selected" : ""}>${tr_esc(f)}</option>`;
           }).join("");
-          var preview = "";
+          
+          let previewColor = found ? 'var(--green-500)' : 'var(--red-500)';
+          let previewHtml = '';
           if (items && m.src) {
-            var previewColor = found ? "#34d399" : "#ef4444";
-            var previewBg = found ? "#34d39908" : "#ef444408";
-            var previewBorder = found ? "#34d39922" : "#ef444422";
-            var previewText = found ? "ex: " + tr_esc(JSON.stringify(val)) : "chemin introuvable";
-            var countHtml = found ? '<span style="font-family:monospace;font-size:9px;color:#475569">' + countWith + '/' + items.length + ' pax</span>' : "";
-            preview = '<div style="margin-top:3px;padding:3px 8px;background:' + previewBg + ';border-radius:4px;border:1px solid ' + previewBorder + ';display:flex;justify-content:space-between;align-items:center">' +
-              '<span style="font-family:monospace;font-size:10px;color:' + previewColor + '">' + previewText + '</span>' + countHtml + '</div>';
+              previewHtml = `<div style="margin-top:var(--space-2);font-family:var(--mono);font-size:11px;color:${previewColor}">
+                ${found ? 'ex: '+tr_esc(JSON.stringify(val)) : 'chemin introuvable'} 
+                ${found ? `<span style="color:var(--text-tertiary);margin-left:var(--space-3)">${countWith}/${items.length} pax</span>` : ''}
+              </div>`;
           }
-          return '<div style="border-bottom:1px solid #0a1628;padding-bottom:6px">' +
-            '<div style="display:grid;grid-template-columns:1fr 16px 1fr 28px;gap:6px;align-items:center;padding-top:8px">' +
-            '<input type="text" value="' + tr_esc(m.src) + '" data-id="' + m.id + '" data-field="src" placeholder="outBound.flightNumber" style="background:#0d1929;border:1px solid ' + bc + ';border-radius:5px;color:#38bdf8;font-size:11px;padding:5px 8px;width:100%"/>' +
-            '<div style="color:#f59e0b;text-align:center;font-size:13px">&#8594;</div>' +
-            '<select data-id="' + m.id + '" data-field="tgt" style="background:#0d1929;border:1px solid #1e2d47;border-radius:5px;color:#34d399;font-size:11px;padding:5px 4px;width:100%">' + opts + '</select>' +
-            '<button data-del="' + m.id + '" style="background:transparent;border:1px solid #ef444433;border-radius:5px;color:#ef4444;font-size:14px;width:28px;height:28px">&#215;</button>' +
-            '</div>' + preview + '</div>';
+
+          return `<tr>
+             <td><input type="text" class="form-input" value="${tr_esc(m.src)}" data-id="${m.id}" data-field="src" placeholder="Chemin source"/>${previewHtml}</td>
+             <td style="vertical-align:top"><select class="form-select" data-id="${m.id}" data-field="tgt">${opts}</select></td>
+             <td style="vertical-align:top;width:40px"><button class="btn btn-danger btn-icon" data-del="${m.id}" title="Supprimer">✕</button></td>
+          </tr>`;
         }).join("");
       }
   }
@@ -666,9 +659,7 @@ function tr_renderUI() {
   var os = document.getElementById("outputStats");
   if(os) {
       os.innerHTML = output
-        ? '<span style="color:#34d399;font-weight:600">' + totalVols + ' vols</span>' +
-          '<span style="color:#334155"> extraits de </span>' +
-          '<span style="color:#38bdf8">' + totalPax + ' passagers</span>'
+        ? `<span style="color:var(--green-500);font-weight:600">${totalVols} vols</span> extraits de <span style="color:var(--blue-500)">${totalPax} pax</span>`
         : "";
   }
 
@@ -676,16 +667,14 @@ function tr_renderUI() {
   if (prev) {
       if (output) {
         var highlighted = tr_state.mappings.map(function(m) { return m.tgt; }).filter(Boolean);
-        var lines = JSON.stringify(output, null, 2).split("\n");
+        var lines = JSON.stringify(output, null, 2).split("
+");
         prev.innerHTML = lines.map(function(line) {
           var hi = highlighted.some(function(h) { return line.indexOf('"' + h + '"') !== -1; });
-          return '<span style="display:block;white-space:pre;' +
-            (hi ? 'color:#f59e0b;background:#f59e0b0d;border-left:2px solid #f59e0b;padding-left:6px'
-                : 'color:#334155;border-left:2px solid transparent;padding-left:8px') +
-            '">' + tr_esc(line) + '</span>';
+          return `<div style="white-space:pre;${hi ? 'color:var(--amber-500);font-weight:600' : 'color:var(--text-primary)'}">${tr_esc(line)}</div>`;
         }).join("");
       } else {
-        prev.innerHTML = '<span style="color:#334155;display:block;text-align:center;padding-top:40px">Charger un fichier source dans &#9312;</span>';
+        prev.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:var(--space-10)">Charger un fichier source dans l\'onglet Source</div>';
       }
   }
 }
@@ -695,35 +684,27 @@ function initTransformerEvents() {
   if(!wrapper) return;
 
   function setTab(tabName) {
-    wrapper.querySelectorAll(".tabBtn").forEach(function(b) {
-      b.style.borderBottom = "2px solid transparent";
-      b.style.color = "#475569";
-      b.style.fontWeight = "400";
-    });
-    wrapper.querySelectorAll(".tab-content").forEach(function(t) { t.classList.remove("active"); });
-    var btn = wrapper.querySelector('.tabBtn[data-tab="'+tabName+'"]');
-    if(btn) {
-        btn.style.borderBottom = "2px solid #38bdf8";
-        btn.style.color = "#38bdf8";
-        btn.style.fontWeight = "600";
-    }
+    document.querySelectorAll("#trTabs .pill").forEach(b => b.classList.remove("active"));
+    wrapper.querySelectorAll(".tab-content").forEach(t => { t.style.display = "none"; t.classList.remove("active"); });
+    var btn = document.querySelector('#trTabs .pill[data-tab="'+tabName+'"]');
+    if(btn) btn.classList.add("active");
     var tc = document.getElementById("tab-" + tabName);
-    if(tc) tc.classList.add("active");
+    if(tc) { tc.style.display = "flex"; tc.classList.add("active"); }
   }
 
-  wrapper.querySelectorAll(".tabBtn").forEach(function(btn) {
-    btn.addEventListener("click", function() { setTab(btn.dataset.tab); });
+  document.querySelectorAll("#trTabs .pill").forEach(btn => {
+    btn.addEventListener("click", () => setTab(btn.dataset.tab));
   });
 
   var fileInput = document.getElementById("fileInput");
   var dropzone  = document.getElementById("dropzone");
   if(dropzone) {
-      dropzone.addEventListener("click", function() { fileInput.click(); });
-      dropzone.addEventListener("dragover",  function(e) { e.preventDefault(); dropzone.style.borderColor="#38bdf8"; });
-      dropzone.addEventListener("dragleave", function()  { dropzone.style.borderColor="#1e2d47"; });
-      dropzone.addEventListener("drop", function(e) { e.preventDefault(); dropzone.style.borderColor="#1e2d47"; loadFile(e.dataTransfer.files[0]); });
+      dropzone.addEventListener("click", () => fileInput.click());
+      dropzone.addEventListener("dragover", e => { e.preventDefault(); dropzone.classList.add("dragover"); });
+      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+      dropzone.addEventListener("drop", e => { e.preventDefault(); dropzone.classList.remove("dragover"); loadFile(e.dataTransfer.files[0]); });
   }
-  if(fileInput) fileInput.addEventListener("change", function(e) { loadFile(e.target.files[0]); });
+  if(fileInput) fileInput.addEventListener("change", e => loadFile(e.target.files[0]));
 
   function loadFile(file) {
     if (!file) return;
@@ -756,16 +737,16 @@ function initTransformerEvents() {
   if(rPath) rPath.addEventListener("input", tr_renderUI);
 
   var btnN = document.getElementById("btnNext");
-  if(btnN) btnN.addEventListener("click", function() { setTab("mapping"); });
+  if(btnN) btnN.addEventListener("click", () => setTab("mapping"));
   
   var btnO = document.getElementById("btnOutput");
-  if(btnO) btnO.addEventListener("click", function() { setTab("output"); });
+  if(btnO) btnO.addEventListener("click", () => setTab("output"));
 
   var bsk = document.getElementById("btnShowKeys");
   if(bsk) bsk.addEventListener("click", function() {
     tr_state.showKeys = !tr_state.showKeys;
     document.getElementById("keysPanel").style.display = tr_state.showKeys ? "block" : "none";
-    this.innerHTML = tr_state.showKeys ? "&#9650; Masquer clés" : "&#9660; Voir clés source";
+    this.textContent = tr_state.showKeys ? "Masquer clés" : "Voir clés source";
   });
 
   var bam = document.getElementById("btnAddMapping");
@@ -780,13 +761,14 @@ function initTransformerEvents() {
         var id = parseInt(e.target.dataset.id);
         var field = e.target.dataset.field;
         if (!id || !field) return;
-        var m = tr_state.mappings.filter(function(x) { return x.id === id; })[0];
+        var m = tr_state.mappings.filter(x => x.id === id)[0];
         if (m) { m[field] = e.target.value; tr_renderUI(); }
       });
       ml.addEventListener("click", function(e) {
+        if(e.target.tagName !== 'BUTTON') return;
         var delId = parseInt(e.target.dataset.del);
         if (delId) {
-          tr_state.mappings = tr_state.mappings.filter(function(m) { return m.id !== delId; });
+          tr_state.mappings = tr_state.mappings.filter(m => m.id !== delId);
           tr_renderUI();
         }
       });
@@ -802,88 +784,80 @@ function initTransformerEvents() {
     a.href = url; a.download = "output.json";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    var btn = document.getElementById("btnDownload");
-    btn.textContent = "✓ Téléchargement lancé !";
-    setTimeout(function() { btn.innerHTML = "&#8595; Télécharger output.json"; }, 2500);
+    showToast("Téléchargé", "success");
   });
 
   tr_renderUI();
 }
 
 function renderTransformer() {
-  return `<div class="page-enter">
+  return `<div class="slide-up">
   <div class="section-header">
-    <h2 class="section-title">JSON Transformer (byFlight / byPax)</h2>
+    <div class="pill-filters" id="trTabs">
+        <button class="pill active" data-tab="source">1. Source</button>
+        <button class="pill" data-tab="mapping">2. Mapping</button>
+        <button class="pill" data-tab="output">3. Sortie JSON</button>
+    </div>
   </div>
-  <div class="transformer-wrapper" id="transformerApp">
-    <div id="header" style="padding:10px 14px;background:#040c1a;border-bottom:1px solid #1e2d47;display:flex;align-items:center;gap:10px;flex-shrink:0">
-      <div style="width:26px;height:26px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px">&#9992;</div>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:600;color:#e2e8f0">JSON Transformer</div>
-        <div style="font-size:9px;color:#475569;letter-spacing:.08em;text-transform:uppercase">CabinPad &middot; Flight data mapper</div>
-      </div>
-      <div id="stats" style="display:flex;gap:6px"></div>
-    </div>
-
-    <div style="display:flex;border-bottom:1px solid #1e2d47;background:#040c1a;flex-shrink:0">
-      <button class="tabBtn active" data-tab="source"  style="flex:1;padding:10px 4px;background:transparent;border:none;border-bottom:2px solid #38bdf8;color:#38bdf8;font-size:12px;font-weight:600">&#9312; Source</button>
-      <button class="tabBtn"        data-tab="mapping" style="flex:1;padding:10px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#475569;font-size:12px;font-weight:400">&#9313; Mapping</button>
-      <button class="tabBtn"        data-tab="output"  style="flex:1;padding:10px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#475569;font-size:12px;font-weight:400">&#9314; Sortie</button>
-    </div>
-
-    <div id="tab-source" class="tab-content active" style="padding:14px;gap:10px">
-      <div id="dropzone" style="border:2px dashed #1e2d47;border-radius:10px;padding:18px;text-align:center;cursor:pointer;flex-shrink:0">
-        <div style="font-size:20px;margin-bottom:4px">&#8679;</div>
-        <div style="font-size:12px;color:#475569">Glisser un <strong style="color:#94a3b8">.json</strong> ou <span style="color:#38bdf8">parcourir</span></div>
+  <div id="transformerApp">
+    <!-- Tab 1: Source -->
+    <div id="tab-source" class="tab-content active" style="display:flex;flex-direction:column;gap:var(--space-5)">
+      <div id="stats" style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap"></div>
+      <div class="card dropzone" id="dropzone">
+        <div style="font-size:32px;color:var(--text-tertiary);margin-bottom:var(--space-2)">⇧</div>
+        <div style="font-size:15px;color:var(--text-primary);font-weight:600">Glisser un <span style="color:var(--blue-500)">.json</span> ou parcourir</div>
         <input id="fileInput" type="file" accept=".json" style="display:none"/>
       </div>
-      <div style="flex-shrink:0">
-        <div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Chemin racine <span style="color:#334155">(vide = auto)</span></div>
-        <input id="rootPath" type="text" placeholder="ex: data.passengers" value="data.passengers"
-          style="width:100%;background:#070d1a;border:1px solid #1e2d47;border-radius:6px;color:#f59e0b;font-size:12px;padding:7px 10px"/>
+      <div class="form-group">
+        <label class="form-label">Chemin racine (vide = auto)</label>
+        <input id="rootPath" type="text" class="form-input" placeholder="ex: data.passengers" value="data.passengers"/>
       </div>
-      <div style="font-size:9px;color:#334155;text-transform:uppercase;letter-spacing:.1em;flex-shrink:0">ou coller le JSON</div>
-      <textarea id="sourceText" placeholder=\'{"data":{"passengers":[...]}}\' style="flex:1;background:#070d1a;border:1px solid #1e2d47;border-radius:8px;color:#94a3b8;font-size:11px;padding:12px;resize:none;line-height:1.6"></textarea>
-      <div id="parseError" style="color:#ef4444;font-size:11px;display:none"></div>
-      <button id="btnNext" style="width:100%;padding:13px;border:none;border-radius:9px;background:#1e2d47;color:#334155;font-size:14px;font-weight:700;flex-shrink:0" disabled>Suivant &#8594; Configurer le mapping</button>
+      <div class="form-group">
+        <label class="form-label">Ou coller le JSON source</label>
+        <textarea id="sourceText" class="form-textarea" placeholder='{"data":{"passengers":[...]}}' style="font-family:var(--mono);font-size:12px;height:200px"></textarea>
+         <div id="parseError" style="color:var(--red-500);font-size:12px;display:none;margin-top:var(--space-2);font-weight:500"></div>
+      </div>
+      <button id="btnNext" class="btn btn-primary" style="align-self:flex-end" disabled>Suivant →</button>
     </div>
 
-    <div id="tab-mapping" class="tab-content">
-      <div style="padding:8px 14px;background:#040c1a;border-bottom:1px solid #1e2d47;flex-shrink:0">
-        <div style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Clés de groupement</div>
-        <div id="groupStats" style="font-size:10px;color:#334155">Charger un fichier source pour voir les stats</div>
+    <!-- Tab 2: Mapping -->
+    <div id="tab-mapping" class="tab-content" style="display:none;flex-direction:column;gap:var(--space-5)">
+      <div class="card" style="padding:var(--space-4)">
+        <div style="font-size:13px;color:var(--text-secondary);font-weight:600;margin-bottom:var(--space-3);text-transform:uppercase;letter-spacing:0.05em">Statistiques de Groupement</div>
+        <div id="groupStats" style="display:flex;flex-direction:column;gap:var(--space-2)">Charger un fichier source...</div>
       </div>
-      <div style="padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #1e2d47;flex-shrink:0">
-        <span id="mappingCount" style="font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:.1em;flex:1">3 mappings</span>
-        <button id="btnShowKeys" style="background:#1e3a5f22;border:1px solid #1e3a5f;border-radius:5px;color:#38bdf8;font-size:10px;padding:3px 10px;display:none">&#9660; Voir clés source</button>
-        <button id="btnAddMapping" style="background:#1d4ed811;border:1px solid #1d4ed844;border-radius:5px;color:#38bdf8;font-size:11px;padding:4px 12px">+ Ajouter</button>
+      <div class="section-header" style="margin-bottom:0">
+         <h3 style="font-size:17px;font-weight:600" id="mappingCount">3 mappings</h3>
+         <div style="display:flex;gap:var(--space-2)">
+           <button id="btnShowKeys" class="btn btn-secondary btn-sm" style="display:none">Voir clés source</button>
+           <button id="btnAddMapping" class="btn btn-primary btn-sm">+ Ajouter Mapping</button>
+         </div>
       </div>
-      <div id="keysPanel" style="padding:8px 14px;border-bottom:1px solid #1e2d47;max-height:110px;overflow-y:auto;flex-shrink:0;background:#040c1a;display:none">
-        <div id="keysBadges" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      <div id="keysPanel" class="card" style="display:none;padding:var(--space-4)"><div id="keysBadges" style="display:flex;flex-wrap:wrap;gap:var(--space-2)"></div></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Chemin source</th><th>Champ cible</th><th style="width:50px"></th></tr></thead>
+            <tbody id="mappingList"></tbody>
+          </table>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 16px 1fr 28px;gap:6px;padding:6px 14px;border-bottom:1px solid #1e2d47;flex-shrink:0">
-        <div style="font-size:9px;color:#334155;text-transform:uppercase;letter-spacing:.1em">Chemin source</div>
-        <div></div>
-        <div style="font-size:9px;color:#334155;text-transform:uppercase;letter-spacing:.1em">Champ cible</div>
-        <div></div>
-      </div>
-      <div id="mappingList" style="flex:1;overflow-y:auto;padding:0 14px"></div>
-      <div style="padding:14px;flex-shrink:0;border-top:1px solid #1e2d47">
-        <button id="btnOutput" style="width:100%;padding:13px;border:none;border-radius:9px;background:#1e2d47;color:#334155;font-size:14px;font-weight:700" disabled>Voir la sortie &#8594;</button>
-      </div>
+      <button id="btnOutput" class="btn btn-primary" style="align-self:flex-end" disabled>Générer Sortie →</button>
     </div>
 
-    <div id="tab-output" class="tab-content" style="padding:14px;gap:10px">
-      <button id="btnDownload" style="width:100%;padding:13px;border:none;border-radius:9px;background:#1e2d47;color:#334155;font-size:14px;font-weight:700;flex-shrink:0" disabled>&#8595; Télécharger output.json</button>
-      <div id="outputStats" style="font-size:11px;color:#475569;text-align:center;flex-shrink:0"></div>
-      <div id="outputPreview" style="flex:1;overflow:auto;background:#070d1a;border:1px solid #1e2d47;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;line-height:1.7;color:#334155">
-        Charger un fichier source dans &#9312;
-      </div>
+    <!-- Tab 3: Output -->
+    <div id="tab-output" class="tab-content" style="display:none;flex-direction:column;gap:var(--space-5)">
+       <div style="display:flex;gap:var(--space-3);justify-content:space-between;align-items:center;flex-wrap:wrap">
+          <div id="outputStats" style="font-size:14px;color:var(--text-primary)"></div>
+          <button id="btnDownload" class="btn btn-primary" disabled>↓ Télécharger output.json</button>
+       </div>
+       <div id="outputPreview" class="code-preview" style="height:500px">
+          Charger un fichier source...
+       </div>
     </div>
-  </div></div>`;
+  </div>
+</div>`;
 }
-// ---------------------------------------
-
 // ---------- ROUTER ----------
 function nav(page){
   currentPage=page;window.location.hash=page;
