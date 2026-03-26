@@ -25,7 +25,7 @@ const TEST_CATEGORIES = [{id:'cfm',label:'CFM',color:'blue'},{id:'cabinpad',labe
 const TEST_STATUSES = [{id:'draft',label:'Brouillon',color:'blue'},{id:'ready',label:'Prêt',color:'blue'},{id:'running',label:'En cours',color:'amber'},{id:'passed',label:'Réussi',color:'green'},{id:'failed',label:'Échoué',color:'red'}];
 const PRODUCT_PHASES = [{id:'dev',label:'Développement',color:'purple'},{id:'recette',label:'Recette',color:'amber'},{id:'prod',label:'Production',color:'green'}];
 const SK = {TC:'cfm_tc',FL:'cfm_fl',PR:'cfm_pr',AC:'cfm_ac'};
-const PAGE_TITLES = {dashboard:'Dashboard',testcases:'Cas de Test',flights:'Données de Vol',products:'Produits',formation:'Formation CFM',transformer:'Transformer',export:'Export / Import',guide:'Guide'};
+const PAGE_TITLES = {dashboard:'Dashboard',testcases:'Cas de Test',flights:'Données de Vol',products:'Produits',formation:'Formation CFM',transformer:'Transformer',export:'Export / Import',guide:'Guide Utilisateur'};
 
 // ---------- HELPERS ----------
 const gid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,9);
@@ -100,6 +100,11 @@ function genFlight(opts={}){
     shortConnectionPassEligibility:Math.random()>0.7,
     terminalOutboundDepartureInfo:rnd(TERMINALS),
     transferTo:[],
+    isEES:false,
+    isPARAFE:false,
+    meetAndConnect:false,
+    lifeJacketCaptainDecisionAnnouncement:false,
+    lifeJacketMandatoryAnnouncement:false,
     // Convenience fields for display
     modifyDate:hasMod?lastKnownTs:null,
   };
@@ -122,6 +127,11 @@ function genCabinPadOutput(flights){
     shortConnectionPassEligibility:f.shortConnectionPassEligibility||false,
     terminalOutboundDepartureInfo:f.terminalOutboundDepartureInfo||'2F2',
     transferTo:f.transferTo||[],
+    isEES:f.isEES||false,
+    isPARAFE:f.isPARAFE||false,
+    meetAndConnect:f.meetAndConnect||false,
+    lifeJacketCaptainDecisionAnnouncement:f.lifeJacketCaptainDecisionAnnouncement||false,
+    lifeJacketMandatoryAnnouncement:f.lifeJacketMandatoryAnnouncement||false,
   }))};
 }
 
@@ -274,7 +284,10 @@ function openFlightModal(){
     <div class="form-group"><label class="form-label">Terminal</label><select class="form-select" id="fTerm">${TERMINALS.map(t=>`<option>${t}</option>`).join('')}</select></div></div>
     <div class="form-row"><div class="form-group"><label class="form-label">PPT (min)</label><input type="number" class="form-input" id="fPpt" value="62" min="0"/></div>
     <div class="form-group"><label class="form-label">criticalityDctTime</label><input type="number" class="form-input" id="fDct" value="101" min="0"/></div></div>
-    <div class="form-group"><label class="form-label">shortConnectionPassEligibility</label><select class="form-select" id="fScp"><option value="false">false</option><option value="true">true</option></select></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">shortConnectionPassEligibility</label><select class="form-select" id="fScp"><option value="false">false</option><option value="true">true</option></select></div>
+    <div class="form-group"><label class="form-label">isEES</label><select class="form-select" id="fEes"><option value="false">false</option><option value="true">true</option></select></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">isPARAFE</label><select class="form-select" id="fParafe"><option value="false">false</option><option value="true">true</option></select></div>
+    <div class="form-group"><label class="form-label">lifeJacketMandatoryAnnouncement</label><select class="form-select" id="fLj"><option value="false">false</option><option value="true">true</option></select></div></div>
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" id="fSaveBtn">Ajouter</button></div>`);
   document.getElementById('fSaveBtn').onclick=()=>{const dep=document.getElementById('fDep').value;
     if(!dep){showToast('ScheduledDate requise','error');return}
@@ -293,6 +306,10 @@ function openFlightModal(){
       ppt:parseInt(document.getElementById('fPpt').value)||62,
       criticalityDctTime:parseInt(document.getElementById('fDct').value)||101,
       shortConnectionPassEligibility:document.getElementById('fScp').value==='true',
+      isEES:document.getElementById('fEes').value==='true',
+      isPARAFE:document.getElementById('fParafe').value==='true',
+      lifeJacketMandatoryAnnouncement:document.getElementById('fLj').value==='true',
+      meetAndConnect:false,lifeJacketCaptainDecisionAnnouncement:false,
       actionsTaken:[],transferTo:[],
       modifyDate:mv?lastTs:null,
     });closeModal();showToast('Vol ajouté','success');nav('flights')};
@@ -481,7 +498,12 @@ var tr_DEFAULT_TEMPLATE = {
   ppt: 62,
   shortConnectionPassEligibility: false,
   terminalOutboundDepartureInfo: "2F2",
-  transferTo: []
+  transferTo: [],
+  isEES: false,
+  isPARAFE: false,
+  meetAndConnect: false,
+  lifeJacketCaptainDecisionAnnouncement: false,
+  lifeJacketMandatoryAnnouncement: false
 };
 var tr_TARGET_FIELDS = Object.keys(tr_DEFAULT_TEMPLATE);
 var tr_GROUP_KEY_PATHS = [
