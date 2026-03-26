@@ -267,6 +267,16 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit;letter
 .page-enter{animation:pageEnter var(--duration-slow) var(--ease-spring)}
 @keyframes pageEnter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
+
+/* ─── Transformer ─── */
+.transformer-wrapper { background: #030810; color: #94a3b8; font-family: system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; border: 1px solid var(--border-primary); margin-top: 10px; height: calc(100vh - 200px); min-height: 600px; }
+.transformer-wrapper input, .transformer-wrapper textarea, .transformer-wrapper select { font-family: monospace; outline: none; }
+.transformer-wrapper input::placeholder, .transformer-wrapper textarea::placeholder { color: #1e3a5f; }
+.transformer-wrapper select option { background: #0d1929; }
+.transformer-wrapper button { cursor: pointer; }
+.transformer-wrapper .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.transformer-wrapper .tab-content.active { display: flex; }
+
 /* ─── Responsive ─── */
 @media(max-width:833px){
   .nav-list{display:none}
