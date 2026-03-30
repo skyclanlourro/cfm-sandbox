@@ -25,7 +25,7 @@ const TEST_CATEGORIES = [{id:'cfm',label:'CFM',color:'blue'},{id:'cabinpad',labe
 const TEST_STATUSES = [{id:'draft',label:'Brouillon',color:'blue'},{id:'ready',label:'Prêt',color:'blue'},{id:'running',label:'En cours',color:'amber'},{id:'passed',label:'Réussi',color:'green'},{id:'failed',label:'Échoué',color:'red'}];
 const PRODUCT_PHASES = [{id:'dev',label:'Développement',color:'purple'},{id:'recette',label:'Recette',color:'amber'},{id:'prod',label:'Production',color:'green'}];
 const SK = {TC:'cfm_tc',FL:'cfm_fl',PR:'cfm_pr',AC:'cfm_ac'};
-const PAGE_TITLES = {dashboard:'Dashboard',testcases:'Cas de Test',flights:'Données de Vol',products:'Produits',formation:'Formation CFM',transformer:'Transformer',export:'Export / Import',guide:'Guide Utilisateur'};
+const PAGE_TITLES = {dashboard:'Dashboard',testcases:'Cas de Test',flights:'Données de Vol',products:'Produits',formation:'Formation CFM',transformer:'Transformer',export:'Export / Import',guide:'Guide'};
 
 // ---------- HELPERS ----------
 const gid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,9);
@@ -100,11 +100,6 @@ function genFlight(opts={}){
     shortConnectionPassEligibility:Math.random()>0.7,
     terminalOutboundDepartureInfo:rnd(TERMINALS),
     transferTo:[],
-    isEES:false,
-    isPARAFE:false,
-    meetAndConnect:false,
-    lifeJacketCaptainDecisionAnnouncement:false,
-    lifeJacketMandatoryAnnouncement:false,
     // Convenience fields for display
     modifyDate:hasMod?lastKnownTs:null,
   };
@@ -127,11 +122,6 @@ function genCabinPadOutput(flights){
     shortConnectionPassEligibility:f.shortConnectionPassEligibility||false,
     terminalOutboundDepartureInfo:f.terminalOutboundDepartureInfo||'2F2',
     transferTo:f.transferTo||[],
-    isEES:f.isEES||false,
-    isPARAFE:f.isPARAFE||false,
-    meetAndConnect:f.meetAndConnect||false,
-    lifeJacketCaptainDecisionAnnouncement:f.lifeJacketCaptainDecisionAnnouncement||false,
-    lifeJacketMandatoryAnnouncement:f.lifeJacketMandatoryAnnouncement||false,
   }))};
 }
 
@@ -207,7 +197,7 @@ function renderTestCases(){
   const pills=TEST_CATEGORIES.map(c=>`<button class="pill ${tcFilter===c.id?'active':''}" onclick="tcFilter='${c.id}';nav('testcases')">${c.label} (${tcs.filter(t=>t.category===c.id).length})</button>`).join('');
   const items=filtered.map(tc=>{const cat=TEST_CATEGORIES.find(c=>c.id===tc.category)||TEST_CATEGORIES[0],st=TEST_STATUSES.find(s=>s.id===tc.status)||TEST_STATUSES[0];
     return `<div class="item-card"><div class="item-card-icon" style="background:rgba(0,112,224,0.1);color:var(--blue-500)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
-    <div class="item-card-body"><div class="item-card-title">${esc(tc.name||'Sans nom')}</div><div class="item-card-desc">${esc(tc.description||'Aucune description')}</div>
+    <div class="item-card-body"><div class="item-card-title">${esc(tc.name||'Sans nom')} ${tc.jiraTicket ? `<span class="badge badge-amber" style="margin-left:var(--space-2);font-size:10px">${esc(tc.jiraTicket)}</span>` : ''}</div><div class="item-card-desc">${esc(tc.description||'Aucune description')}</div>
     <div class="item-card-meta"><span class="badge badge-${cat.color}">${cat.label}</span><span class="badge badge-${st.color}">${st.label}</span><span style="color:var(--text-muted);font-size:var(--font-size-xs)">${fmtDT(tc.updatedAt)}</span></div></div>
     <div class="item-card-actions"><button class="btn btn-ghost btn-icon" onclick="event.stopPropagation();openTCModal('${tc.id}')" title="Modifier">✎</button><button class="btn btn-danger btn-icon" onclick="event.stopPropagation();if(confirm('Supprimer ?')){delTC('${tc.id}');showToast('Supprimé','success');nav('testcases')}" title="Supprimer">✕</button></div></div>`}).join('');
   const empty=`<div class="card"><div class="empty-state"><div class="empty-state-title">Aucun cas de test</div><div class="empty-state-text">Créez votre premier cas de test.</div><button class="btn btn-primary" onclick="openTCModal()">+ Créer</button></div></div>`;
@@ -217,14 +207,15 @@ function renderTestCases(){
 function openTCModal(id){
   const ex=id?getTC().find(c=>c.id===id):null, isE=!!ex;
   showModal(`<div class="modal-header"><h2 class="modal-title">${isE?'Modifier':'Nouveau'} cas de test</h2><button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" id="tcName" value="${esc(ex?.name||'')}" placeholder="Vérification modifyDate vol AF1234"/></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" id="tcName" value="${esc(ex?.name||'')}" placeholder="Vérification modifyDate vol AF1234"/></div>
+    <div class="form-group"><label class="form-label">Ticket Jira</label><input type="text" class="form-input" id="tcJira" value="${esc(ex?.jiraTicket||'')}" placeholder="CFM-XXX"/></div></div>
     <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="tcDesc" placeholder="Décrire le scénario...">${esc(ex?.description||'')}</textarea></div>
     <div class="form-row"><div class="form-group"><label class="form-label">Catégorie</label><select class="form-select" id="tcCat">${TEST_CATEGORIES.map(c=>`<option value="${c.id}" ${ex?.category===c.id?'selected':''}>${c.label}</option>`).join('')}</select></div>
     <div class="form-group"><label class="form-label">Statut</label><select class="form-select" id="tcSt">${TEST_STATUSES.map(s=>`<option value="${s.id}" ${ex?.status===s.id?'selected':''}>${s.label}</option>`).join('')}</select></div></div>
     <div class="form-group"><label class="form-label">Données attendues (JSON)</label><textarea class="form-textarea" id="tcData" style="font-family:monospace;font-size:var(--font-size-xs)">${esc(ex?.expectedData||'')}</textarea></div>
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" id="tcSaveBtn">${isE?'Mettre à jour':'Créer'}</button></div>`);
   document.getElementById('tcSaveBtn').onclick=()=>{const n=document.getElementById('tcName').value.trim();if(!n){showToast('Nom requis','error');return}
-    saveTC({...(ex||{}),name:n,description:document.getElementById('tcDesc').value.trim(),category:document.getElementById('tcCat').value,status:document.getElementById('tcSt').value,expectedData:document.getElementById('tcData').value.trim()});
+    saveTC({...(ex||{}),name:n,jiraTicket:document.getElementById('tcJira').value.trim(),description:document.getElementById('tcDesc').value.trim(),category:document.getElementById('tcCat').value,status:document.getElementById('tcSt').value,expectedData:document.getElementById('tcData').value.trim()});
     closeModal();showToast(isE?'Mis à jour':'Créé','success');nav('testcases')};
 }
 
@@ -284,10 +275,7 @@ function openFlightModal(){
     <div class="form-group"><label class="form-label">Terminal</label><select class="form-select" id="fTerm">${TERMINALS.map(t=>`<option>${t}</option>`).join('')}</select></div></div>
     <div class="form-row"><div class="form-group"><label class="form-label">PPT (min)</label><input type="number" class="form-input" id="fPpt" value="62" min="0"/></div>
     <div class="form-group"><label class="form-label">criticalityDctTime</label><input type="number" class="form-input" id="fDct" value="101" min="0"/></div></div>
-    <div class="form-row"><div class="form-group"><label class="form-label">shortConnectionPassEligibility</label><select class="form-select" id="fScp"><option value="false">false</option><option value="true">true</option></select></div>
-    <div class="form-group"><label class="form-label">isEES</label><select class="form-select" id="fEes"><option value="false">false</option><option value="true">true</option></select></div></div>
-    <div class="form-row"><div class="form-group"><label class="form-label">isPARAFE</label><select class="form-select" id="fParafe"><option value="false">false</option><option value="true">true</option></select></div>
-    <div class="form-group"><label class="form-label">lifeJacketMandatoryAnnouncement</label><select class="form-select" id="fLj"><option value="false">false</option><option value="true">true</option></select></div></div>
+    <div class="form-group"><label class="form-label">shortConnectionPassEligibility</label><select class="form-select" id="fScp"><option value="false">false</option><option value="true">true</option></select></div>
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" id="fSaveBtn">Ajouter</button></div>`);
   document.getElementById('fSaveBtn').onclick=()=>{const dep=document.getElementById('fDep').value;
     if(!dep){showToast('ScheduledDate requise','error');return}
@@ -306,10 +294,6 @@ function openFlightModal(){
       ppt:parseInt(document.getElementById('fPpt').value)||62,
       criticalityDctTime:parseInt(document.getElementById('fDct').value)||101,
       shortConnectionPassEligibility:document.getElementById('fScp').value==='true',
-      isEES:document.getElementById('fEes').value==='true',
-      isPARAFE:document.getElementById('fParafe').value==='true',
-      lifeJacketMandatoryAnnouncement:document.getElementById('fLj').value==='true',
-      meetAndConnect:false,lifeJacketCaptainDecisionAnnouncement:false,
       actionsTaken:[],transferTo:[],
       modifyDate:mv?lastTs:null,
     });closeModal();showToast('Vol ajouté','success');nav('flights')};
@@ -485,7 +469,7 @@ function toggleFaq(el){
 
 
 // ---------- PAGE: TRANSFORMER ----------
-var tr_DEFAULT_TEMPLATE = {
+var tr_DEFAULT_FLIGHT_TEMPLATE = {
   actionsTaken: [],
   connectionFlowStatus: "TO_MAINTAIN",
   criticalityDctTime: 101,
@@ -498,14 +482,27 @@ var tr_DEFAULT_TEMPLATE = {
   ppt: 62,
   shortConnectionPassEligibility: false,
   terminalOutboundDepartureInfo: "2F2",
-  transferTo: [],
+  transferTo: []
+};
+var tr_DEFAULT_PAX_TEMPLATE = {
+  actionsTaken: [],
+  connectionFlowStatus: "TO_MAINTAIN",
+  criticalityDctTime: 273,
+  gateNumberOutboundDeparture: "F29",
   isEES: false,
   isPARAFE: false,
-  meetAndConnect: false,
-  lifeJacketCaptainDecisionAnnouncement: false,
-  lifeJacketMandatoryAnnouncement: false
+  originalTransferFrom: "AF7522/24",
+  outboundFlightDestination: "BES",
+  outboundFlightLastKnownDate: 1774388100000,
+  outboundFlightNumber: "AF7524",
+  outboundFlightOrigin: "CDG",
+  outboundFlightScheduledDate: 1774388100000,
+  ppt: 24,
+  shortConnectionPassEligibility: false,
+  terminalOutboundDepartureInfo: "2F1",
+  transferTo: []
 };
-var tr_TARGET_FIELDS = Object.keys(tr_DEFAULT_TEMPLATE);
+var tr_TARGET_FIELDS = Array.from(new Set([...Object.keys(tr_DEFAULT_FLIGHT_TEMPLATE), ...Object.keys(tr_DEFAULT_PAX_TEMPLATE)]));
 var tr_GROUP_KEY_PATHS = [
   "outBound.flightNumber",
   "outBound.departureDate",
@@ -514,6 +511,8 @@ var tr_GROUP_KEY_PATHS = [
   "outBound.departureStation"
 ];
 var tr_state = {
+  mode: 'flight', // 'flight' or 'pax'
+  jiraTicket: '',
   sourceJson: null,
   mappings: [
     { id: 1, src: "outBound.departureDate",  tgt: "outboundFlightScheduledDate" },
@@ -544,27 +543,41 @@ function tr_resolveItems(json, rootPath) {
 }
 function tr_buildOutput(items, mappings) {
   var active = mappings.filter(function(m) { return m.src && m.tgt; });
-  var groups = {};
-  var order = [];
-  items.forEach(function(item) {
-    var keyParts = tr_GROUP_KEY_PATHS.map(function(p) {
-      var v = tr_getVal(item, p);
-      return v !== undefined ? String(v) : "__undefined__";
+  var template = tr_state.mode === 'pax' ? tr_DEFAULT_PAX_TEMPLATE : tr_DEFAULT_FLIGHT_TEMPLATE;
+
+  if (tr_state.mode === 'flight') {
+    var groups = {};
+    var order = [];
+    items.forEach(function(item) {
+      var keyParts = tr_GROUP_KEY_PATHS.map(function(p) {
+        var v = tr_getVal(item, p);
+        return v !== undefined ? String(v) : "__undefined__";
+      });
+      var key = keyParts.join("|||");
+      var hasOutBound = tr_GROUP_KEY_PATHS.some(function(p) { return tr_getVal(item, p) !== undefined; });
+      if (!hasOutBound) return;
+      if (!groups[key]) {
+        var result = JSON.parse(JSON.stringify(template));
+        active.forEach(function(m) {
+          var v = tr_getVal(item, m.src);
+          if (v !== undefined) result[m.tgt] = v;
+        });
+        groups[key] = result;
+        order.push(key);
+      }
     });
-    var key = keyParts.join("|||");
-    var hasOutBound = tr_GROUP_KEY_PATHS.some(function(p) { return tr_getVal(item, p) !== undefined; });
-    if (!hasOutBound) return;
-    if (!groups[key]) {
-      var result = JSON.parse(JSON.stringify(tr_DEFAULT_TEMPLATE));
+    return order.map(function(k) { return groups[k]; });
+  } else {
+    // Passenger mode: one entry per item
+    return items.map(function(item) {
+      var result = JSON.parse(JSON.stringify(template));
       active.forEach(function(m) {
         var v = tr_getVal(item, m.src);
         if (v !== undefined) result[m.tgt] = v;
       });
-      groups[key] = result;
-      order.push(key);
-    }
-  });
-  return order.map(function(k) { return groups[k]; });
+      return result;
+    });
+  }
 }
 function tr_getAvailableKeys(items) {
   var keys = {};
@@ -587,7 +600,7 @@ function tr_renderUI() {
   var rootPath = document.getElementById("rootPath")?.value || "";
   var items = tr_state.sourceJson ? tr_resolveItems(tr_state.sourceJson, rootPath) : null;
   var outputArr = items ? tr_buildOutput(items, tr_state.mappings) : null;
-  var output = outputArr ? { data: outputArr } : null;
+  var output = outputArr ? (tr_state.mode === 'pax' ? { data: outputArr, header: { responseCode: "OK", jiraTicket: tr_state.jiraTicket || undefined } } : { data: outputArr, jiraTicket: tr_state.jiraTicket || undefined }) : null;
   tr_state._output = output;
 
   var totalPax  = items ? items.length : 0;
@@ -757,6 +770,12 @@ function initTransformerEvents() {
   var rPath = document.getElementById("rootPath");
   if(rPath) rPath.addEventListener("input", tr_renderUI);
 
+  var trJira = document.getElementById("trJira");
+  if(trJira) trJira.addEventListener("input", function(e) {
+    tr_state.jiraTicket = e.target.value.trim();
+    tr_renderUI();
+  });
+
   var btnN = document.getElementById("btnNext");
   if(btnN) btnN.addEventListener("click", () => setTab("mapping"));
   
@@ -808,30 +827,74 @@ function initTransformerEvents() {
     showToast("Téléchargé", "success");
   });
 
+  var mf = document.getElementById("modeFlight");
+  var mp = document.getElementById("modePax");
+  if(mf && mp) {
+      mf.onclick = () => { tr_state.mode = 'flight'; nav('transformer'); };
+      mp.onclick = () => { tr_state.mode = 'pax'; nav('transformer'); };
+  }
+
+  window.tr_loadPreset = function(city) {
+    var data = [];
+    if(city === 'NCE') {
+      data = [
+        { outBound: { flightNumber: "AF7708", pnr: "QH2QKC", destination: "NCE", transferTo: ["AF7708"] } },
+        { outBound: { flightNumber: "AF7524", pnr: "NYTDU6", destination: "NCE", transferTo: [] } },
+        { outBound: { flightNumber: "AF7708", pnr: "OJE4LI", destination: "NCE", transferTo: ["AF7708"] } }
+      ];
+    } else {
+      data = [
+        { outBound: { flightNumber: "AF7524", pnr: "MYS8AD", destination: "TLS", isEES: true, isPARAFE: true, shortConnectionPassEligibility: true } },
+        { outBound: { flightNumber: "AF7524", pnr: "MY2KTN", destination: "TLS", meetAndConnect: true } },
+        { outBound: { flightNumber: "AF7524", pnr: "ORP48A", destination: "TLS" } }
+      ];
+    }
+    var json = JSON.stringify({ data: { passengers: data } }, null, 2);
+    tr_state.sourceJson = JSON.parse(json);
+    var st = document.getElementById("sourceText");
+    if(st) st.value = json;
+    tr_renderUI();
+  };
+
   tr_renderUI();
 }
 
 function renderTransformer() {
   return `<div class="slide-up">
-  <div class="section-header">
+  <div class="section-header" style="justify-content:space-between">
     <div class="pill-filters" id="trTabs">
         <button class="pill active" data-tab="source">1. Source</button>
         <button class="pill" data-tab="mapping">2. Mapping</button>
         <button class="pill" data-tab="output">3. Sortie JSON</button>
     </div>
+    <div style="display:flex;background:var(--bg-secondary);padding:var(--space-1);border-radius:var(--radius-lg);border:1px solid var(--border-primary)">
+      <button id="modeFlight" class="btn btn-sm ${tr_state.mode === 'flight' ? 'btn-primary' : 'btn-ghost'}" style="padding:var(--space-1) var(--space-4);font-size:12px;font-weight:600">ByFlight</button>
+      <button id="modePax" class="btn btn-sm ${tr_state.mode === 'pax' ? 'btn-primary' : 'btn-ghost'}" style="padding:var(--space-1) var(--space-4);font-size:12px;font-weight:600">ByPax</button>
+    </div>
   </div>
   <div id="transformerApp">
     <!-- Tab 1: Source -->
     <div id="tab-source" class="tab-content active" style="display:flex;flex-direction:column;gap:var(--space-5)">
+      <div id="paxPresets" style="display:${tr_state.mode === 'pax' ? 'flex' : 'none'};gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap;align-items:center">
+         <span style="font-size:12px;color:var(--text-muted);font-weight:600">Charger exemple :</span>
+         <button class="btn btn-secondary btn-sm" onclick="tr_loadPreset('NCE')">NCE (3 pax)</button>
+         <button class="btn btn-secondary btn-sm" onclick="tr_loadPreset('TLS')">TLS (3 pax)</button>
+      </div>
       <div id="stats" style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap"></div>
       <div class="card dropzone" id="dropzone">
         <div style="font-size:32px;color:var(--text-tertiary);margin-bottom:var(--space-2)">⇧</div>
         <div style="font-size:15px;color:var(--text-primary);font-weight:600">Glisser un <span style="color:var(--blue-500)">.json</span> ou parcourir</div>
         <input id="fileInput" type="file" accept=".json" style="display:none"/>
       </div>
-      <div class="form-group">
-        <label class="form-label">Chemin racine (vide = auto)</label>
-        <input id="rootPath" type="text" class="form-input" placeholder="ex: data.passengers" value="data.passengers"/>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Chemin racine (vide = auto)</label>
+          <input id="rootPath" type="text" class="form-input" placeholder="ex: data.passengers" value="data.passengers"/>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Ticket Jira</label>
+          <input id="trJira" type="text" class="form-input" placeholder="ex: CFM-010" value="${tr_state.jiraTicket||''}"/>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Ou coller le JSON source</label>
@@ -912,9 +975,9 @@ function renderFormation() {
       <div class="card" style="display:flex;flex-direction:column;gap:var(--space-3)">
         <div style="display:flex;align-items:center;gap:var(--space-3)">
           <div style="background:rgba(16,185,129,0.1);color:var(--green-500);padding:var(--space-2);border-radius:var(--radius-md)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
-          <h3 style="font-weight:600;font-size:16px">ByPax NCE & TLS</h3>
+          <h3 style="font-weight:600;font-size:16px">ByPax CFM-010</h3>
         </div>
-        <p style="font-size:13px;color:var(--text-secondary);flex:1">Format ByPax structuré avec entête, PNR, Short Connection Pass, EES et PARAFE.</p>
+        <p style="font-size:13px;color:var(--text-secondary);flex:1">Format ByPax (CFM-010) avec PNR NCE & TLS, Short Connection Pass, EES et PARAFE.</p>
         <button id="btnFormByPax" class="btn btn-primary" style="width:100%">Générer JSON</button>
       </div>
 

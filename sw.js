@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cfm-sandbox-v1';
+const CACHE_NAME = 'cfm-sandbox-v3';
 const ASSETS = [
   './',
   './index.html',
