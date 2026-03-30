@@ -25,7 +25,7 @@ const TEST_CATEGORIES = [{id:'cfm',label:'CFM',color:'blue'},{id:'cabinpad',labe
 const TEST_STATUSES = [{id:'draft',label:'Brouillon',color:'blue'},{id:'ready',label:'Prêt',color:'blue'},{id:'running',label:'En cours',color:'amber'},{id:'passed',label:'Réussi',color:'green'},{id:'failed',label:'Échoué',color:'red'}];
 const PRODUCT_PHASES = [{id:'dev',label:'Développement',color:'purple'},{id:'recette',label:'Recette',color:'amber'},{id:'prod',label:'Production',color:'green'}];
 const SK = {TC:'cfm_tc',FL:'cfm_fl',PR:'cfm_pr',AC:'cfm_ac'};
-const PAGE_TITLES = {dashboard:'Dashboard',testcases:'Cas de Test',flights:'Données de Vol',products:'Produits',formation:'Formation CFM',transformer:'Transformer',export:'Export / Import',guide:'Guide'};
+const PAGE_TITLES = {dashboard:'Dashboard',testcases:'Cas de Test',flights:'Données de Vol',products:'Produits',formation:'Formation CFM',transformer:'Extract',export:'Export / Import',guide:'Guide'};
 
 // ---------- HELPERS ----------
 const gid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,9);
@@ -164,28 +164,20 @@ let currentPage='dashboard', tcFilter='all', prFilter='all';
 // ---------- PAGE: DASHBOARD ----------
 function renderDashboard(){
   const tcs=getTC(),fls=getFL(),prs=getPR(),acts=load(SK.AC).slice(0,8);
-  const modCount=fls.filter(f=>f.modifyDate||f.outboundFlightLastKnownDate!==f.outboundFlightScheduledDate).length;
-  const statusCounts={};TEST_STATUSES.forEach(s=>{statusCounts[s.id]=tcs.filter(t=>t.status===s.id).length});
-  const actHtml=acts.length?acts.map(a=>`<div class="timeline-item"><div class="timeline-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="3"/></svg></div><div><div class="timeline-title"><strong>${esc(a.name)}</strong> ${a.action}</div><div class="timeline-time">${fmtDT(a.timestamp)}</div></div></div>`).join(''):'<div style="color:var(--text-muted);font-size:var(--font-size-sm);padding:var(--space-4)">Aucune activité. Commencez par créer un cas de test.</div>';
+  const actHtml=acts.length?acts.map(a=>`<div class="timeline-item"><div class="timeline-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="3"/></svg></div><div><div class="timeline-title"><strong>${esc(a.name)}</strong> ${a.action}</div><div class="timeline-time">${fmtDT(a.timestamp)}</div></div></div>`).join(''):'<div style="color:var(--text-muted);font-size:var(--font-size-sm);padding:var(--space-4)">Aucune activité récente.</div>';
 
   return `<div class="page-enter">
     <div class="stats-grid">
-      <div class="stat-card" style="--stat-color:var(--blue-500)"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><div class="stat-value">${tcs.length}</div><div class="stat-label">Cas de test</div></div>
-      <div class="stat-card" style="--stat-color:var(--teal-500)"><div class="stat-icon" style="background:rgba(0,184,169,0.1);color:var(--teal-500)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></div><div class="stat-value">${fls.length}</div><div class="stat-label">Données de vol</div></div>
-      <div class="stat-card" style="--stat-color:var(--purple-500)"><div class="stat-icon" style="background:rgba(108,92,231,0.1);color:var(--purple-500)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div><div class="stat-value">${prs.length}</div><div class="stat-label">Produits</div></div>
-      <div class="stat-card" style="--stat-color:var(--amber-500)"><div class="stat-icon" style="background:rgba(247,183,49,0.1);color:var(--amber-500)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="stat-value">${modCount}</div><div class="stat-label">Modifications vol</div></div>
-    </div>
-    <div class="section"><div class="section-header"><h2 class="section-title">Statut des tests</h2></div>
-      <div class="card"><div style="display:flex;gap:var(--space-4);flex-wrap:wrap">${TEST_STATUSES.map(s=>`<div style="display:flex;align-items:center;gap:var(--space-2)"><span class="badge badge-${s.color}">${s.label}</span><span style="font-weight:700;font-size:var(--font-size-lg)">${statusCounts[s.id]||0}</span></div>`).join('')}</div></div>
+      <div class="stat-card" style="--stat-color:var(--blue-500)"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="stat-value">Extract</div><div class="stat-label">Outil de transformation</div></div>
+      <div class="stat-card" style="--stat-color:var(--teal-500)"><div class="stat-icon" style="background:rgba(48,209,88,0.1);color:var(--green-500)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div class="stat-value">Guide</div><div class="stat-label">Documentation utilisateur</div></div>
     </div>
     <div class="section"><div class="section-header"><h2 class="section-title">Activité récente</h2></div>
       <div class="card" style="padding:var(--space-4) var(--space-6)"><div class="timeline">${actHtml}</div></div>
     </div>
     <div class="section"><div class="section-header"><h2 class="section-title">Actions rapides</h2></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--space-4)">
-        <button class="card" style="text-align:left;cursor:pointer;border:none" onclick="nav('testcases')"><strong style="color:var(--blue-500)">+ Nouveau cas de test</strong><div style="color:var(--text-muted);font-size:var(--font-size-sm);margin-top:var(--space-2)">Créer un scénario de test</div></button>
-        <button class="card" style="text-align:left;cursor:pointer;border:none" onclick="nav('flights')"><strong style="color:var(--teal-500)">⚡ Générer des vols</strong><div style="color:var(--text-muted);font-size:var(--font-size-sm);margin-top:var(--space-2)">Données de vol réalistes</div></button>
-        <button class="card" style="text-align:left;cursor:pointer;border:none" onclick="nav('export')"><strong style="color:var(--purple-500)">↓ Exporter</strong><div style="color:var(--text-muted);font-size:var(--font-size-sm);margin-top:var(--space-2)">Partager les jeux de données</div></button>
+        <button class="card" style="text-align:left;cursor:pointer;border:none" onclick="nav('transformer')"><strong style="color:var(--blue-500)">⚡ Ouvrir Extract</strong><div style="color:var(--text-muted);font-size:var(--font-size-sm);margin-top:var(--space-2)">Transformer vos fichiers source</div></button>
+        <button class="card" style="text-align:left;cursor:pointer;border:none" onclick="nav('guide')"><strong style="color:var(--teal-500)">📖 Consulter le Guide</strong><div style="color:var(--text-muted);font-size:var(--font-size-sm);margin-top:var(--space-2)">Apprendre à utiliser l'outil</div></button>
       </div>
     </div>
   </div>`;
@@ -397,65 +389,40 @@ function renderGuide(){
   return `<div class="page-enter">
     <div class="guide-hero">
       <div class="guide-hero-tag">✦ CFM Sandbox</div>
-      <h2>Comment utiliser<br>le Sandbox</h2>
-      <p>Tout ce qu'il faut savoir pour générer, gérer et partager vos jeux de données de test CFM/Cabinpad.</p>
+      <h2>Comment utiliser<br>l'outil Extract</h2>
+      <p>Tout ce qu'il faut savoir pour transformer vos fichiers source en jeux de données compatibles Cabinpad.</p>
     </div>
 
-    <div class="guide-grid">
+    <div class="guide-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))">
       <div class="guide-card" style="--card-accent:rgba(41,151,255,0.08)">
         <div class="guide-card-num">01</div>
         <div class="guide-card-title">Dashboard</div>
-        <div class="guide-card-text">Vue d'ensemble de votre environnement sandbox. Retrouvez vos statistiques, l'activité récente et les actions rapides pour démarrer immédiatement.</div>
+        <div class="guide-card-text">Vue d'ensemble de votre environnement. Retrouvez l'activité récente et accédez rapidement aux fonctionnalités principales.</div>
         <a class="guide-card-link" onclick="nav('dashboard')">Ouvrir le Dashboard →</a>
       </div>
-      <div class="guide-card" style="--card-accent:rgba(48,209,88,0.08)">
-        <div class="guide-card-num">02</div>
-        <div class="guide-card-title">Cas de Test</div>
-        <div class="guide-card-text">Créez et organisez vos scénarios de test par catégorie (CFM, Cabinpad, Produit, Intégration) et suivez leur statut de brouillon à réussite.</div>
-        <a class="guide-card-link" onclick="nav('testcases')">Gérer les Tests →</a>
-      </div>
-      <div class="guide-card" style="--card-accent:rgba(255,159,10,0.08)">
-        <div class="guide-card-num">03</div>
-        <div class="guide-card-title">Données de Vol</div>
-        <div class="guide-card-text">Générez des données de vol réalistes au format CabinPad avec timestamps epoch, <code style=\"color:var(--amber-500)\">outboundFlightLastKnownDate</code>, Gates, Terminaux, PPT.</div>
-        <a class="guide-card-link" onclick="nav('flights')">Générer des Vols →</a>
-      </div>
       <div class="guide-card" style="--card-accent:rgba(191,90,242,0.08)">
-        <div class="guide-card-num">04</div>
-        <div class="guide-card-title">Produits</div>
-        <div class="guide-card-text">Gérez les entrées produit (repas, kits, etc.) avec le workflow de phase : Développement → Recette → Production pour préparer la recette.</div>
-        <a class="guide-card-link" onclick="nav('products')">Voir les Produits →</a>
+        <div class="guide-card-num">02</div>
+        <div class="guide-card-title">Extract</div>
+        <div class="guide-card-text">L'outil principal pour transformer vos JSON sources. Gérez les mappings entre vos données brutes et le format cible.</div>
+        <a class="guide-card-link" onclick="nav('transformer')">Utiliser Extract →</a>
       </div>
     </div>
 
     <div class="guide-section">
-      <div class="guide-section-title">Générer des données de vol</div>
+      <div class="guide-section-title">Utiliser l'outil Extract</div>
       <div class="guide-steps">
-        <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body"><h4>Ouvrir la page Données de Vol</h4><p>Cliquez sur « Données de Vol » dans la barre latérale ou le menu du bas sur iPad.</p></div></div>
-        <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body"><h4>Utiliser la génération rapide</h4><p>Saisissez le nombre de vols souhaité (1–50), cochez « Forcer modification date » si vous voulez que tous les vols aient une date modifiée, puis cliquez ⚡ Générer.</p></div></div>
-        <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body"><h4>Consulter le JSON CabinPad</h4><p>Cliquez 📄 sur un vol pour voir le JSON au format CabinPad <code>{ data: [...] }</code>. Cliquez 📥 pour voir le format source <code>outBound</code>. Utilisez le bouton <strong>{ } CabinPad JSON</strong> pour exporter tous les vols d'un coup.</p></div></div>
-        <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body"><h4>Ajout manuel</h4><p>Pour un vol spécifique, cliquez « + Ajout manuel » et renseignez les champs CabinPad (Origin, Destination, ScheduledDate, Gate, Terminal, PPT, etc.).</p></div></div>
-      </div>
-    </div>
-
-    <div class="guide-section">
-      <div class="guide-section-title">Exporter et partager</div>
-      <div class="guide-steps">
-        <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body"><h4>Exporter en JSON</h4><p>Page Export → « Télécharger JSON » pour sauvegarder tout (cas de test + vols + produits) dans un fichier <code>.json</code>.</p></div></div>
-        <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body"><h4>Partager avec l'équipe</h4><p>Envoyez le fichier JSON par email, Teams ou Slack. Le destinataire l'importe via Export → Importer.</p></div></div>
-        <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body"><h4>Copier dans le presse-papiers</h4><p>Sur la page Export ou dans les modales JSON, utilisez « Copier » pour coller directement le JSON dans un outil ou un message.</p></div></div>
+        <div class="guide-step"><div class="guide-step-num">1</div><div class="guide-step-body"><h4>Charger une source</h4><p>Dans l'onglet <strong>Source</strong>, glissez-déposez votre fichier JSON ou collez directement le contenu dans la zone de texte.</p></div></div>
+        <div class="guide-step"><div class="guide-step-num">2</div><div class="guide-step-body"><h4>Configurer le mapping</h4><p>L'onglet <strong>Mapping</strong> vous permet de lier les champs de votre source aux champs attendus par CFM/Cabinpad. Utilisez le bouton « Voir clés source » pour vous aider.</p></div></div>
+        <div class="guide-step"><div class="guide-step-num">3</div><div class="guide-step-body"><h4>Générer la sortie</h4><p>Une fois le mapping configuré, l'onglet <strong>Sortie JSON</strong> affiche le résultat final. Vous pouvez l'apercevoir et le télécharger directement.</p></div></div>
+        <div class="guide-step"><div class="guide-step-num">4</div><div class="guide-step-body"><h4>Ticket Jira</h4><p>N'oubliez pas de renseigner le ticket Jira associé pour assurer la traçabilité de vos données générées.</p></div></div>
       </div>
     </div>
 
     <div class="guide-section">
       <div class="guide-section-title">Questions fréquentes</div>
       <div class="guide-faq">
-        <div class="guide-faq-item"><button class="guide-faq-q" onclick="toggleFaq(this)">Comment simuler une modification de date de vol (modifyDate) ?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><div class="guide-faq-a">Lors de la génération batch, cochez « Forcer modification date ». Chaque vol aura alors un <code>outboundFlightLastKnownDate</code> différent de son <code>outboundFlightScheduledDate</code>, simulant une modification. En ajout manuel, renseignez le champ « LastKnownDate (modif) » avec une date différente du départ programmé.</div></div>
-        <div class="guide-faq-item"><button class="guide-faq-q" onclick="toggleFaq(this)">Quel format JSON CabinPad est généré ?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><div class="guide-faq-a">Le format est <code>{ "data": [ { "actionsTaken": [...], "connectionFlowStatus": "...", "criticalityDctTime": N, "outboundFlightNumber": "AF...", "outboundFlightScheduledDate": epoch_ms, ... } ] }</code>. Les dates sont en timestamps epoch millisecondes, conformes au format de production CabinPad.</div></div>
-        <div class="guide-faq-item"><button class="guide-faq-q" onclick="toggleFaq(this)">Où sont stockées les données ?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><div class="guide-faq-a">Tout est stocké dans le <code>localStorage</code> de votre navigateur. Les données persistent entre les sessions mais sont locales à ce navigateur. Utilisez l'export JSON pour sauvegarder ou partager vos données.</div></div>
-        <div class="guide-faq-item"><button class="guide-faq-q" onclick="toggleFaq(this)">Comment utiliser sur iPad ?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><div class="guide-faq-a">Ouvrez le fichier <code>index.html</code> dans Safari. Le site est entièrement responsive — la navigation bascule sur une barre en bas de l'écran, adaptée au tactile. Sur Safari, vous pouvez aussi « Ajouter à l'écran d'accueil » pour un accès rapide.</div></div>
-        <div class="guide-faq-item"><button class="guide-faq-q" onclick="toggleFaq(this)">Quelle est la différence entre CabinPad JSON et Source JSON ?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><div class="guide-faq-a"><strong>CabinPad JSON</strong> (📄) est le format de sortie envoyé à l'application Cabinpad avec les champs <code>outboundFlight*</code>. <strong>Source JSON</strong> (📥) est le format d'entrée brut avec la structure <code>{ outBound: { flightNumber, departureDate, arrivalStation... } }</code>, tel qu'il arrive avant le mapping.</div></div>
-        <div class="guide-faq-item"><button class="guide-faq-q" onclick="toggleFaq(this)">Comment gérer le cycle de vie des produits ?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><div class="guide-faq-a">Créez un produit en phase « Développement ». Quand il est prêt pour les tests, cliquez ↑ pour le promouvoir en « Recette ». Après validation, promouvez en « Production ». Filtrez par phase avec les onglets en haut de la page.</div></div>
+        <div class="guide-faq-item"><button class="guide-faq-q" onclick="toggleFaq(this)">Où sont stockées les données ?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><div class="guide-faq-a">Tout est stocké dans le <code>localStorage</code> de votre navigateur. Les données persistent entre les sessions mais sont locales à ce navigateur.</div></div>
+        <div class="guide-faq-item"><button class="guide-faq-q" onclick="toggleFaq(this)">Comment utiliser sur iPad ?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><div class="guide-faq-a">Ouvrez le fichier <code>index.html</code> dans Safari. Le site est entièrement responsive — la navigation bascule sur une barre adaptée au tactile.</div></div>
       </div>
     </div>
   </div>`;
@@ -468,7 +435,7 @@ function toggleFaq(el){
 }
 
 
-// ---------- PAGE: TRANSFORMER ----------
+// ---------- PAGE: EXTRACT ----------
 var tr_DEFAULT_FLIGHT_TEMPLATE = {
   actionsTaken: [],
   connectionFlowStatus: "TO_MAINTAIN",
